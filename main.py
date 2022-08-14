@@ -6,10 +6,12 @@ import statistics
 
 # Define this before start
 #main_source_folder = 'C:\\Users\\spraf\\IdeaProjects\\KITE\\KITE-Janustutorial-Test\\kite-allure-reports\\'
-main_source_folder = 'C:\\Users\\spraf\\IdeaProjects\\KITE\\KITE-AntMediaTest-Test\\kite-allure-reports\\'
-main_json_name = main_source_folder + 'd70f621b-a6bc-422b-9f24-30cc413b087f-result.json'
-number_of_clients = 17  # Sollte eine Zahl teilbar durch 10 sein, damit das Balkendiagramm richtig angezeigt wird
-chart_scaling_x_axis = 5000  # Default auf 5000ms stellen: sagt, wie die x_achse gegliedert ist, also z.B ein Wert alle 5000 ms. So werden dann auch alle y-Werte innerhalb der 5000ms aggregiert
+#main_source_folder = 'C:\\Users\\spraf\\IdeaProjects\\KITE\\KITE-AntMediaTest-Test\\kite-allure-reports\\'
+#main_source_folder = 'C:\\Users\\spraf\\Desktop\\Studium\\Master\\Masterarbeit\\Programieren\\Janus\\Test\\Testergerbnisse\\Ant MEdia\\1-cpu-1gb\\kite-allure-reports\\'
+main_source_folder = 'C:\\Users\\spraf\\Desktop\\Studium\\Master\\Masterarbeit\\Programieren\\Janus\\Test\\Testergerbnisse\\Janus\\4-cpu-8gb\\Test1.2\\kite-allure-reports\\'
+main_json_name = main_source_folder + 'd419cf23-2efe-49c0-8541-aee0eb9ef37f-result.json'
+number_of_clients = 150  # Sollte eine Zahl teilbar durch 10 sein, damit das Balkendiagramm richtig angezeigt wird
+chart_scaling_x_axis = 10000  # Default auf 5000ms stellen: sagt, wie die x_achse gegliedert ist, also z.B ein Wert alle 5000 ms. So werden dann auch alle y-Werte innerhalb der 5000ms aggregiert
 # Define until here
 main_json = {}
 rtc_stats = []
@@ -27,8 +29,8 @@ def start():
     build_bitrate_audio_statistics()
     build_jitter_audio_statistics()
     build_jitter_video_statistics()
-    build_packets_lost_audio_statistics()
-    build_packets_lost_video_statistics()
+    #build_packets_lost_audio_statistics()
+    #build_packets_lost_video_statistics()
 
 
 def build_video_check_statistics():
@@ -55,15 +57,17 @@ def build_video_check_statistics():
     for step in steps:
         if step["description"] == "Check if video is visible":
             if step["status"] == "PASSED":
-                counter_visible += 1
                 with open(main_source_folder + step["attachments"][0]["source"], 'r') as file:
                     current_video_check_json = json.load(file)
-                print(current_video_check_json["videoStartupTimeInMs"])
-                print(current_video_check_json["rampUpNumber"])
-                switcher[current_video_check_json["clientNumber"] % 10].append(
-                    current_video_check_json["videoStartupTimeInMs"])
+                if int(current_video_check_json["videoStartupTimeInMs"]) > 0:
+                    counter_visible += 1
+                    switcher[current_video_check_json["clientNumber"] % 10].append(
+                        current_video_check_json["videoStartupTimeInMs"])
+                else:
+                    counter_not_visible += 1
+                    switcher[int(step["name"][-28]) % 10].append(-250)
             else:
-                switcher[int(step["name"][-28]) % 10].append(-10)
+                switcher[int(step["name"][-28]) % 10].append(-250)
                 counter_not_visible += 1
     counted = counter_visible + counter_not_visible
     if counted != number_of_clients:
@@ -77,6 +81,7 @@ def build_video_check_statistics():
     fig1, ax1 = plt.subplots()
     ax1.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
     ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    plt.savefig('pie_chart.png')
     plt.show()
 
     # Bar Chart
@@ -103,11 +108,11 @@ def build_video_check_statistics():
             newList.append(bar_nineth[index])
         if len(bar_tenth) > index:
             newList.append(bar_tenth[index])
-        bar_median.append(statistics.median(newList))
-        bar_max.append(max(newList))
+        #bar_median.append(statistics.median(newList))
+        #bar_max.append(max(newList))
 
     bar_labels = np.arange(1, number_of_clients / 10 + 1, dtype=int)
-    width = 0.35
+    width = 0.8
     fig2, ax2 = plt.subplots()
 
     rects1 = ax2.bar(bar_labels - 1 * width / 10, bar_first, width / 10, label='1')
@@ -120,18 +125,19 @@ def build_video_check_statistics():
     rects8 = ax2.bar(bar_labels + 2 * width / 10, bar_eighth, width / 10, label='8')
     rects9 = ax2.bar(bar_labels + 1 * width / 10, bar_nineth, width / 10, label='9')
     rects10 = ax2.bar(bar_labels, bar_tenth, width / 10, label='10')
-    rects_median = ax2.bar(bar_labels + 5 * width / 10, bar_median, width / 10, label='Median')
+    #rects_median = ax2.bar(bar_labels + 5 * width / 10, bar_median, width / 10, label='Median')
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
     ax2.set_ylabel('Zeit in Millisekunden')
     ax2.set_xlabel('Nummer des Ramp-Ups')
     ax2.set_title('Dauer bis das Video zu sehen ist, gruppiert nach Nummer des Ramp-Ups')
     ax2.set_xticks(bar_labels, bar_labels)
-    ax2.legend()
-    for index in range(len(bar_median)):
-        plt.text(bar_labels[index], bar_max[index], "Median: " + str(bar_median[index]), ha='center', fontsize=12)
+    #ax2.legend()
+    #for index in range(len(bar_median)):
+        #plt.text(bar_labels[index], bar_max[index], "Median: " + str(bar_median[index]), ha='center', fontsize=12)
 
     fig2.tight_layout()
+    plt.savefig('startupt_times.png')
     plt.show()
 
 
@@ -139,10 +145,12 @@ def build_latency_statstics():
     x_axis, y_axis, milliseconds_in_readable_time = build_general_statistic(first_key='latencyInMs')
     fig, ax = plt.subplots()  # Create a figure containing a single axes.
     ax.plot(x_axis, y_axis)  # Plot some data on the axes.
-    plt.xticks(x_axis, milliseconds_in_readable_time)
+    new_x_axis, new_labels = get_x_axis_with_less_ticks(x_axis, milliseconds_in_readable_time)
+    plt.xticks(new_x_axis, new_labels)
     plt.xlabel('Vergangene Zeit in Minuten')
     plt.ylabel('Latenz in Millisekunden')
     plt.title('Verlauf der Durchschnittslatenz aller Clients im zeitlichen Verlauf')
+    plt.savefig('latency.png')
     plt.show()
 
 
@@ -152,10 +160,12 @@ def build_bitrate_video_statistics():
                                                                                        '-second')
     fig, ax = plt.subplots()  # Create a figure containing a single axes.
     ax.plot(x_axis, y_axis)  # Plot some data on the axes.
-    plt.xticks(x_axis, milliseconds_in_readable_time)
+    new_x_axis, new_labels = get_x_axis_with_less_ticks(x_axis, milliseconds_in_readable_time)
+    plt.xticks(new_x_axis, new_labels)
     plt.xlabel('Vergangene Zeit in Minuten')
     plt.ylabel('Bitrate in kbit/s')
     plt.title('Verlauf der Durchschnittsbitrate des Videos aller Clients im zeitlichen Verlauf')
+    plt.savefig('video_bitrate.png')
     plt.show()
 
 
@@ -164,10 +174,12 @@ def build_bitrate_audio_statistics():
                                                                             second_key='audio-bitrate-in-kbit-per-second')
     fig, ax = plt.subplots()  # Create a figure containing a single axes.
     ax.plot(x_axis, y_axis)  # Plot some data on the axes.
-    plt.xticks(x_axis, milliseconds_in_readable_time)
+    new_x_axis, new_labels = get_x_axis_with_less_ticks(x_axis, milliseconds_in_readable_time)
+    plt.xticks(new_x_axis, new_labels)
     plt.xlabel('Vergangene Zeit in Minuten')
     plt.ylabel('Bitrate in kbit/s')
     plt.title('Verlauf der Durchschnittsbitrate des Audios aller Clients im zeitlichen Verlauf')
+    plt.savefig('audio_bitrate.png')
     plt.show()
 
 
@@ -176,10 +188,12 @@ def build_jitter_audio_statistics():
                                                                             second_key='jitter')
     fig, ax = plt.subplots()  # Create a figure containing a single axes.
     ax.plot(x_axis, y_axis)  # Plot some data on the axes.
-    plt.xticks(x_axis, milliseconds_in_readable_time)
+    new_x_axis, new_labels = get_x_axis_with_less_ticks(x_axis, milliseconds_in_readable_time)
+    plt.xticks(new_x_axis, new_labels)
     plt.xlabel('Vergangene Zeit in Minuten')
     plt.ylabel('Jitter in')
     plt.title('Verlauf des Durchschnitts-Jitter des Audios aller Clients im zeitlichen Verlauf')
+    plt.savefig('audio_jitter.png')
     plt.show()
 
 
@@ -188,10 +202,12 @@ def build_jitter_video_statistics():
                                                                             second_key='jitter')
     fig, ax = plt.subplots()  # Create a figure containing a single axes.
     ax.plot(x_axis, y_axis)  # Plot some data on the axes.
-    plt.xticks(x_axis, milliseconds_in_readable_time)
+    new_x_axis, new_labels = get_x_axis_with_less_ticks(x_axis, milliseconds_in_readable_time)
+    plt.xticks(new_x_axis, new_labels)
     plt.xlabel('Vergangene Zeit in Minuten')
     plt.ylabel('Jitter in')
     plt.title('Verlauf des Durchschnitts-Jitter des Videos aller Clients im zeitlichen Verlauf')
+    plt.savefig('video_jitter.png')
     plt.show()
 
 
@@ -200,10 +216,12 @@ def build_packets_lost_audio_statistics():
                                                                             second_key='packetsLost')
     fig, ax = plt.subplots()  # Create a figure containing a single axes.
     ax.plot(x_axis, y_axis)  # Plot some data on the axes.
-    plt.xticks(x_axis, milliseconds_in_readable_time)
+    new_x_axis, new_labels = get_x_axis_with_less_ticks(x_axis, milliseconds_in_readable_time)
+    plt.xticks(new_x_axis, new_labels)
     plt.xlabel('Vergangene Zeit in Minuten')
     plt.ylabel('Absolute Anzahl Verlorener Pakete')
     plt.title('Verlorene Pakete des Audios aller Clients im Durchschnitt im zeitlichen Verlauf (kummuliert)')
+    plt.savefig('audio_packets_lost.png')
     plt.show()
 
 
@@ -212,10 +230,12 @@ def build_packets_lost_video_statistics():
                                                                             second_key='packetsLost')
     fig, ax = plt.subplots()  # Create a figure containing a single axes.
     ax.plot(x_axis, y_axis)  # Plot some data on the axes.
-    plt.xticks(x_axis, milliseconds_in_readable_time)
+    new_x_axis, new_labels = get_x_axis_with_less_ticks(x_axis, milliseconds_in_readable_time)
+    plt.xticks(new_x_axis, new_labels)
     plt.xlabel('Vergangene Zeit in Minuten')
     plt.ylabel('Absolute Anzahl Verlorener Pakete')
     plt.title('Verlorene Pakete des Videos aller Clients im Durchschnitt im zeitlichen Verlauf (kummuliert)')
+    plt.savefig('video_packets_lost.png')
     plt.show()
 
 
@@ -244,7 +264,7 @@ def build_general_statistic(**key_names):
 
     milliseconds_in_readable_time = []
     for index in range(len(y_axis)):
-        if index % 12 == 0:
+        if index % 30 == 0:
             milliseconds_in_readable_time.append(convert_millis(x_axis[index]))
         else:
             milliseconds_in_readable_time.append("")
@@ -310,23 +330,6 @@ def prepare_x_and_y_axis():
     return x_axis, y_axis, y_axis_count
 
 
-def switch_ra(argument):
-    switcher = {
-        1: "January",
-        2: "February",
-        3: "March",
-        4: "April",
-        5: "May",
-        6: "June",
-        7: "July",
-        8: "August",
-        9: "September",
-        10: "October",
-        11: "November",
-        12: "December"
-    }
-
-
 def pretty_print_json(json_obj):
     print(json.dumps(json_obj, indent=4, sort_keys=True))
 
@@ -344,8 +347,18 @@ def to_string_time(time):
         return str(time)
 
 
+def get_x_axis_with_less_ticks(x_axis, milliseconds_in_readable_time):
+    new_x_axis = []
+    new_labels = []
+    for i, num in enumerate(x_axis):
+        if num % 60000 == 0:
+            new_x_axis.append(num)
+            new_labels.append(milliseconds_in_readable_time[i])
+
+    return new_x_axis, new_labels
+
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     start()
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
