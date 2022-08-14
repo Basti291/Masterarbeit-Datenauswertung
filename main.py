@@ -6,20 +6,37 @@ import statistics
 
 # Define this before start
 #main_source_folder = 'C:\\Users\\spraf\\IdeaProjects\\KITE\\KITE-Janustutorial-Test\\kite-allure-reports\\'
-main_source_folder = 'C:\\Users\\spraf\\IdeaProjects\\KITE\\KITE-AntMediaTest-Test\\kite-allure-reports\\'
-main_json_name = main_source_folder + 'd70f621b-a6bc-422b-9f24-30cc413b087f-result.json'
+#main_source_folder = 'C:\\Users\\spraf\\IdeaProjects\\KITE\\KITE-AntMediaTest-Test\\kite-allure-reports\\'
+main_source_folder = 'C:\\Users\\spraf\\Desktop\\Studium\\Master\\Masterarbeit\\Programieren\\Janus\\Test\\Testergerbnisse\\Ant MEdia\\'
+main_json_name1 = main_source_folder + '1-cpu-1gb\\kite-allure-reports\\d70f621b-a6bc-422b-9f24-30cc413b087f-result.json'
+main_json_name2 = main_source_folder + '2-cpu-4gb\\Test1\\kite-allure-reports\\a78ee862-53ec-4e8f-aeb4-f66d620c4088-result.json'
+main_json_name3 = main_source_folder + '4-cpu-8gb\\Test1\\kite-allure-reports\\42a36a5c-a7ec-4f1b-8514-f01a7a1026fa-result.json'
 number_of_clients = 17  # Sollte eine Zahl teilbar durch 10 sein, damit das Balkendiagramm richtig angezeigt wird
 chart_scaling_x_axis = 5000  # Default auf 5000ms stellen: sagt, wie die x_achse gegliedert ist, also z.B ein Wert alle 5000 ms. So werden dann auch alle y-Werte innerhalb der 5000ms aggregiert
 # Define until here
-main_json = {}
-rtc_stats = []
-start_timestamp = 0
-stop_timestamp = 0
+main_json1 = {}
+rtc_stats1 = []
+start_timestamp1 = 0
+stop_timestamp1 = 0
+
+main_json2 = {}
+rtc_stats2 = []
+start_timestamp2 = 0
+stop_timestamp2 = 0
+
+main_json3 = {}
+rtc_stats3 = []
+start_timestamp3 = 0
+stop_timestamp3 = 0
 
 
 def start():
-    parse_main_json()
-    parse_rtc_stats()
+    parse_main_json(1)
+    parse_rtc_stats(1)
+    parse_main_json(2)
+    parse_rtc_stats(2)
+    parse_main_json(3)
+    parse_rtc_stats(3)
 
     build_video_check_statistics()
     build_latency_statstics()
@@ -254,31 +271,86 @@ def build_general_statistic(**key_names):
     return x_axis, y_axis, milliseconds_in_readable_time
 
 
-def parse_main_json():
-    global main_json
-    global main_json_name
+def parse_main_json(main_json_number):
+    global main_json1
+    global main_json_name1
+    global main_json2
+    global main_json_name2
+    global main_json3
+    global main_json_name3
+    global start_timestamp1
+    global stop_timestamp1
+    global start_timestamp2
+    global stop_timestamp2
+    global start_timestamp3
+    global stop_timestamp3
+    switcher = {
+        1: main_json1,
+        2: main_json2,
+        3: main_json3
+    }
+    switcher_name = {
+        1: main_json_name1,
+        2: main_json_name2,
+        3: main_json_name3
+    }
+    switcher_start = {
+        1: start_timestamp1,
+        2: start_timestamp2,
+        3: start_timestamp3
+    }
+    switcher_end = {
+        1: stop_timestamp1,
+        2: stop_timestamp2,
+        3: stop_timestamp3
+    }
+    main_json = switcher[int(main_json_number)]
+    main_json_name = switcher_name[int(main_json_number)]
+
 
     if main_json != {}:
         return
     with open(main_json_name, 'r') as file:
         main_json = json.load(file)
     # pretty_print_json(main_json)
-    global start_timestamp
-    global stop_timestamp
-    start_timestamp = int(main_json["start"])
-    stop_timestamp = int(main_json["stop"])
+    switcher_start[int(main_json_number)] = int(main_json["start"])
+    switcher_end[int(main_json_number)] = int(main_json["stop"])
+    print(main_json1)
+    switcher[int(main_json_number)] = main_json
 
 
-def parse_rtc_stats():
-    global main_json
-    global rtc_stats
-    global start_timestamp
-    global stop_timestamp
+def parse_rtc_stats(main_json_number):
+    global main_json1
+    global main_json2
+    global main_json3
+    global start_timestamp1
+    global stop_timestamp1
+    global start_timestamp2
+    global stop_timestamp2
+    global start_timestamp3
+    global stop_timestamp3
+    global rtc_stats1
+    global rtc_stats2
+    global rtc_stats3
+
+    switcher = {
+        1: rtc_stats1,
+        2: rtc_stats2,
+        3: rtc_stats3
+    }
+    switcher_main_json = {
+        1: main_json1,
+        2: main_json2,
+        3: main_json3
+    }
+    main_json = switcher_main_json[int(main_json_number)]
+    rtc_stats = switcher[int(main_json_number)]
+
     if rtc_stats:
         return
     if main_json != {}:
-        parse_main_json()
-
+        parse_main_json(main_json_number)
+    print(main_json)
     steps = main_json["steps"]
     counter_passed = 0
     rtc_stats_file_names = []
